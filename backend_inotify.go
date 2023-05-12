@@ -230,6 +230,32 @@ func (w *watches) updatePath(path string, f func(*watch) (*watch, error)) error 
 	return nil
 }
 
+func WatcherRecursivelyWithExclude() (*Watcher, error) {
+	fd, errno := unix.InotifyInit1(unix.IN_CLOEXEC | unix.IN_NONBLOCK)
+	if fd == -1 {
+		return nil, errno
+	}
+	w := &Watcher{
+		fd:          fd,
+		inotifyFile: os.NewFile(uintptr(fd), ""),
+		watches:     newWatches(),
+		Events:      make(chan Event),
+		Errors:      make(chan error),
+		done:        make(chan struct{}),
+		doneResp:    make(chan struct{}),
+	}
+
+	wdirs, err := GetDirNames(w.WatchList())
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range wdirs {
+		w.Add(v)
+	}
+	go w.readEvents()
+	return w, nil
+}
+
 // NewWatcher creates a new Watcher.
 func NewWatcher() (*Watcher, error) {
 	// Need to set nonblocking mode for SetDeadline to work, otherwise blocking
@@ -357,9 +383,10 @@ func (w *Watcher) AddWith(name string, opts ...addOpt) error {
 	name = filepath.Clean(name)
 	_ = getOptions(opts...)
 
-	var flags uint32 = unix.IN_MOVED_TO | unix.IN_MOVED_FROM |
-		unix.IN_CREATE | unix.IN_ATTRIB | unix.IN_MODIFY |
-		unix.IN_MOVE_SELF | unix.IN_DELETE | unix.IN_DELETE_SELF
+	// var flags uint32 = unix.IN_MOVED_TO | unix.IN_MOVED_FROM |
+	// 	unix.IN_CREATE | unix.IN_ATTRIB | unix.IN_MODIFY |
+	// 	unix.IN_MOVE_SELF | unix.IN_DELETE | unix.IN_DELETE_SELF
+	var flags uint32 = unix.IN_ALL_EVENTS
 
 	return w.watches.updatePath(name, func(existing *watch) (*watch, error) {
 		if existing != nil {
@@ -521,6 +548,9 @@ func (w *Watcher) readEvents() {
 			if watch != nil && mask&unix.IN_DELETE_SELF == unix.IN_DELETE_SELF {
 				w.watches.remove(watch.wd)
 			}
+			if watch != nil && mask&unix.IN_DELETE_SELF == unix.IN_DELETE_SELF {
+			}
+
 			// We can't really update the state when a watched path is moved;
 			// only IN_MOVE_SELF is sent and not IN_MOVED_{FROM,TO}. So remove
 			// the watch.
@@ -562,20 +592,84 @@ func (w *Watcher) readEvents() {
 // newEvent returns an platform-independent Event based on an inotify mask.
 func (w *Watcher) newEvent(name string, mask uint32) Event {
 	e := Event{Name: name}
-	if mask&unix.IN_CREATE == unix.IN_CREATE || mask&unix.IN_MOVED_TO == unix.IN_MOVED_TO {
-		e.Op |= Create
-	}
-	if mask&unix.IN_DELETE_SELF == unix.IN_DELETE_SELF || mask&unix.IN_DELETE == unix.IN_DELETE {
-		e.Op |= Remove
-	}
-	if mask&unix.IN_MODIFY == unix.IN_MODIFY {
-		e.Op |= Write
-	}
-	if mask&unix.IN_MOVE_SELF == unix.IN_MOVE_SELF || mask&unix.IN_MOVED_FROM == unix.IN_MOVED_FROM {
-		e.Op |= Rename
+	// if mask&unix.IN_CREATE == unix.IN_CREATE {
+	// 	e.Op |= Create
+	// }
+
+	if mask&unix.IN_ACCESS == unix.IN_ACCESS {
+		e.Op |= IN_ACCESS
 	}
 	if mask&unix.IN_ATTRIB == unix.IN_ATTRIB {
-		e.Op |= Chmod
+		e.Op |= IN_ATTRIB
 	}
+	if mask&unix.IN_CLOSE == unix.IN_CLOSE {
+		e.Op |= IN_CLOSE
+	}
+	if mask&unix.IN_CLOSE_NOWRITE == unix.IN_CLOSE_NOWRITE {
+		e.Op |= IN_CLOSE_NOWRITE
+	}
+	if mask&unix.IN_CLOSE_WRITE == unix.IN_CLOSE_WRITE {
+		e.Op |= IN_CLOSE_WRITE
+	}
+	if mask&unix.IN_CREATE == unix.IN_CREATE {
+		e.Op |= IN_CREATE
+	}
+	if mask&unix.IN_DELETE == unix.IN_DELETE {
+		e.Op |= IN_DELETE
+	}
+	if mask&unix.IN_DELETE_SELF == unix.IN_DELETE_SELF {
+		e.Op |= IN_DELETE_SELF
+	}
+	if mask&unix.IN_IGNORED == unix.IN_IGNORED {
+		e.Op |= IN_IGNORED
+	}
+	if mask&unix.IN_ISDIR == unix.IN_ISDIR {
+		e.Op |= IN_ISDIR
+	}
+	if mask&unix.IN_MODIFY == unix.IN_MODIFY {
+		e.Op |= IN_MODIFY
+	}
+	if mask&unix.IN_MOVE == unix.IN_MOVE {
+		e.Op |= IN_MOVE
+	}
+	if mask&unix.IN_MOVED_FROM == unix.IN_MOVED_FROM {
+		e.Op |= IN_MOVED_FROM
+	}
+	if mask&unix.IN_MOVED_TO == unix.IN_MOVED_TO {
+		e.Op |= IN_MOVED_TO
+	}
+	if mask&unix.IN_MOVE_SELF == unix.IN_MOVE_SELF {
+		e.Op |= IN_MOVE_SELF
+	}
+	if mask&unix.IN_ONLYDIR == unix.IN_ONLYDIR {
+		e.Op |= IN_ONLYDIR
+	}
+	if mask&unix.IN_OPEN == unix.IN_OPEN {
+		e.Op |= IN_OPEN
+	}
+
+	// if mask&unix.IN_DELETE_SELF == unix.IN_DELETE_SELF {
+	// 	e.Op |= IN_DELETE_SELF
+	// }
+	// if mask&unix.IN_MOVED_TO == unix.IN_MOVED_TO {
+	// 	e.Op |= MovedTO
+	// }
+
+	// if mask&unix.IN_DELETE_SELF == unix.IN_DELETE_SELF || mask&unix.IN_DELETE == unix.IN_DELETE {
+	// 	e.Op |= Remove
+	// }
+
+	// if mask&unix.IN_MODIFY == unix.IN_MODIFY {
+	// 	e.Op |= Write
+	// }
+
+	// if mask&unix.IN_MOVE_SELF == unix.IN_MOVE_SELF || mask&unix.IN_MOVED_FROM == unix.IN_MOVED_FROM {
+	// 	e.Op |= Rename
+	// }
+
+	// if mask&unix.IN_ATTRIB == unix.IN_ATTRIB {
+	// 	e.Op |= Chmod
+	// }
+
 	return e
 }

@@ -3,9 +3,9 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
-	"time"
 )
 
 var usage = `
@@ -36,7 +36,9 @@ func help() {
 // Print line prefixed with the time (a bit shorter than log.Print; we don't
 // really need the date and ms is useful here).
 func printTime(s string, args ...interface{}) {
-	fmt.Printf(time.Now().Format("15:04:05.0000")+" "+s+"\n", args...)
+	// fmt.Printf()
+	// log.Printf(time.Now().Format("15:04:05.0000")+" "+s+"\n", args...)
+	log.Printf(s+"\n", args...)
 }
 
 func main() {

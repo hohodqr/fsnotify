@@ -10,7 +10,8 @@ func watch(paths ...string) {
 	}
 
 	// Create a new watcher.
-	w, err := fsnotify.NewWatcher()
+	// w, err := fsnotify.NewWatcher()
+	w, err := fsnotify.WatcherRecursivelyWithExclude()
 	if err != nil {
 		exit("creating a new watcher: %s", err)
 	}
@@ -19,7 +20,11 @@ func watch(paths ...string) {
 	// Start listening for events.
 	go watchLoop(w)
 
-	// Add all paths from the commandline.
+	// Add all paths from the commandline
+	paths, err = fsnotify.GetDirNames(paths)
+	if err != nil {
+		exit("add init watch path err %s", err)
+	}
 	for _, p := range paths {
 		err = w.Add(p)
 		if err != nil {
@@ -32,7 +37,7 @@ func watch(paths ...string) {
 }
 
 func watchLoop(w *fsnotify.Watcher) {
-	i := 0
+	// i := 0
 	for {
 		select {
 		// Read from Errors.
@@ -46,11 +51,15 @@ func watchLoop(w *fsnotify.Watcher) {
 			if !ok { // Channel was closed (i.e. Watcher.Close() was called).
 				return
 			}
+			if e.Op.String() == "IN_CREATE|IN_ISDIR" {
+				w.Add(e.Name)
+			}
 
 			// Just print the event nicely aligned, and keep track how many
 			// events we've seen.
-			i++
-			printTime("%3d %s", i, e)
+			// i++
+			// printTime("%3d %s", i, e)
+			printTime("Op:%s Name: %s", e.Op, e.Name)
 		}
 	}
 }

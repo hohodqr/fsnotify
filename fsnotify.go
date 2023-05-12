@@ -39,8 +39,15 @@ type Op uint32
 // full description, and check them with [Event.Has].
 const (
 	// A new pathname was created.
-	Create Op = 1 << iota
 
+	Create Op = 1 << iota
+	// IN_ACCESS
+	// IN_CREATE
+	// MovedTO
+	// IN_MOVED_TO
+	// IN_DELETE_SELF
+	// IN_DELETE
+	// IN_MODIFY
 	// The pathname was written to; this does *not* mean the write has finished,
 	// and a write can be followed by more writes.
 	Write
@@ -53,6 +60,8 @@ const (
 	// The path was renamed to something else; any watched on it will be
 	// removed.
 	Rename
+	// IN_MOVE_SELF
+	// IN_MOVED_FROM
 
 	// File attributes were changed.
 	//
@@ -60,6 +69,42 @@ const (
 	// get triggered very frequently by some software. For example, Spotlight
 	// indexing on macOS, anti-virus software, backup software, etc.
 	Chmod
+	IN_ACCESS        = 0x1
+	IN_ALL_EVENTS    = 0xfff
+	IN_ATTRIB        = 0x4
+	IN_CLASSA_HOST   = 0xffffff
+	IN_CLASSA_MAX    = 0x80
+	IN_CLASSA_NET    = 0xff000000
+	IN_CLASSA_NSHIFT = 0x18
+	IN_CLASSB_HOST   = 0xffff
+	IN_CLASSB_MAX    = 0x10000
+	IN_CLASSB_NET    = 0xffff0000
+	IN_CLASSB_NSHIFT = 0x10
+	IN_CLASSC_HOST   = 0xff
+	IN_CLASSC_NET    = 0xffffff00
+	IN_CLASSC_NSHIFT = 0x8
+	IN_CLOSE         = 0x18
+	IN_CLOSE_NOWRITE = 0x10
+	IN_CLOSE_WRITE   = 0x8
+	IN_CREATE        = 0x100
+	IN_DELETE        = 0x200
+	IN_DELETE_SELF   = 0x400
+	IN_DONT_FOLLOW   = 0x2000000
+	IN_EXCL_UNLINK   = 0x4000000
+	IN_IGNORED       = 0x8000
+	IN_ISDIR         = 0x40000000
+	IN_LOOPBACKNET   = 0x7f
+	IN_MASK_ADD      = 0x20000000
+	IN_MASK_CREATE   = 0x10000000
+	IN_MODIFY        = 0x2
+	IN_MOVE          = 0xc0
+	IN_MOVED_FROM    = 0x40
+	IN_MOVED_TO      = 0x80
+	IN_MOVE_SELF     = 0x800
+	IN_ONESHOT       = 0x80000000
+	IN_ONLYDIR       = 0x1000000
+	IN_OPEN          = 0x20
+	IN_Q_OVERFLOW    = 0x4000
 )
 
 // Common errors that can be reported.
@@ -71,21 +116,71 @@ var (
 
 func (o Op) String() string {
 	var b strings.Builder
-	if o.Has(Create) {
-		b.WriteString("|CREATE")
+	if o.Has(IN_ACCESS) {
+		b.WriteString("|IN_ACCESS")
 	}
-	if o.Has(Remove) {
-		b.WriteString("|REMOVE")
+	if o.Has(IN_ATTRIB) {
+		b.WriteString("|IN_ATTRIB")
 	}
-	if o.Has(Write) {
-		b.WriteString("|WRITE")
+	if o.Has(IN_CLOSE) {
+		b.WriteString("|IN_CLOSE")
 	}
-	if o.Has(Rename) {
-		b.WriteString("|RENAME")
+	if o.Has(IN_CLOSE_NOWRITE) {
+		b.WriteString("|IN_CLOSE_NOWRITE")
 	}
-	if o.Has(Chmod) {
-		b.WriteString("|CHMOD")
+	if o.Has(IN_CLOSE_WRITE) {
+		b.WriteString("|IN_CLOSE_WRITE")
 	}
+	if o.Has(IN_CREATE) {
+		b.WriteString("|IN_CREATE")
+	}
+	if o.Has(IN_DELETE) {
+		b.WriteString("|IN_DELETE")
+	}
+	if o.Has(IN_DELETE_SELF) {
+		b.WriteString("|IN_DELETE_SELF")
+	}
+
+	if o.Has(IN_MOVED_TO) {
+		b.WriteString("|IN_MOVED_TO")
+	}
+
+	if o.Has(IN_MODIFY) {
+		b.WriteString("|IN_MODIFY")
+	}
+	if o.Has(IN_MOVE_SELF) {
+		b.WriteString("|IN_MOVE_SELF")
+	}
+	if o.Has(IN_MOVED_FROM) {
+		b.WriteString("|IN_MOVED_FROM")
+	}
+
+	if o.Has(IN_ISDIR) {
+		b.WriteString("|IN_ISDIR")
+	}
+	if o.Has(IN_OPEN) {
+		b.WriteString("|IN_OPEN")
+	}
+	// ----------
+	if o.Has(IN_DONT_FOLLOW) {
+		b.WriteString("|IN_DONT_FOLLOW")
+	}
+	// --------
+	// if o.Has(Create) {
+	// 	b.WriteString("|CREATE")
+	// }
+	// if o.Has(Remove) {
+	// 	b.WriteString("|REMOVE")
+	// }
+	// if o.Has(Write) {
+	// 	b.WriteString("|WRITE")
+	// }
+	// if o.Has(Rename) {
+	// 	b.WriteString("|RENAME")
+	// }
+	// if o.Has(Chmod) {
+	// 	b.WriteString("|CHMOD")
+	// }
 	if b.Len() == 0 {
 		return "[no events]"
 	}
@@ -100,7 +195,8 @@ func (e Event) Has(op Op) bool { return e.Op.Has(op) }
 
 // String returns a string representation of the event with their path.
 func (e Event) String() string {
-	return fmt.Sprintf("%-13s %q", e.Op.String(), e.Name)
+	// return fmt.Sprintf("%-13s %q %+v", e.Op.String(), e.Name, e.Op)
+	return fmt.Sprintf("%s %s ", e.Op, e.Name)
 }
 
 type (
