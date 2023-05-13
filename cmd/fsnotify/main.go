@@ -4,11 +4,16 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"path/filepath"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var usage = `
+
 fsnotify is a Go library to provide cross-platform file system notifications.
 This command serves as an example and debugging tool.
 
@@ -42,6 +47,8 @@ func printTime(s string, args ...interface{}) {
 }
 
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	if len(os.Args) == 1 {
 		help()
 	}
@@ -52,6 +59,10 @@ func main() {
 			help()
 		}
 	}
+	// pro()
+	server := http.NewServeMux()
+	server.Handle("/metrics", promhttp.Handler())
+	go http.ListenAndServe("0.0.0.0:6061", server)
 
 	cmd, args := os.Args[1], os.Args[2:]
 	switch cmd {
@@ -64,4 +75,5 @@ func main() {
 	case "dedup":
 		dedup(args...)
 	}
+
 }

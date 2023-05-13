@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -383,10 +384,10 @@ func (w *Watcher) AddWith(name string, opts ...addOpt) error {
 	name = filepath.Clean(name)
 	_ = getOptions(opts...)
 
-	// var flags uint32 = unix.IN_MOVED_TO | unix.IN_MOVED_FROM |
-	// 	unix.IN_CREATE | unix.IN_ATTRIB | unix.IN_MODIFY |
-	// 	unix.IN_MOVE_SELF | unix.IN_DELETE | unix.IN_DELETE_SELF
-	var flags uint32 = unix.IN_ALL_EVENTS
+	var flags uint32 = unix.IN_MOVED_TO | unix.IN_MOVED_FROM |
+		unix.IN_CREATE | unix.IN_ATTRIB | unix.IN_MODIFY |
+		unix.IN_MOVE_SELF | unix.IN_DELETE | unix.IN_DELETE_SELF
+	// var flags uint32 = unix.IN_ALL_EVENTS
 
 	return w.watches.updatePath(name, func(existing *watch) (*watch, error) {
 		if existing != nil {
@@ -548,8 +549,6 @@ func (w *Watcher) readEvents() {
 			if watch != nil && mask&unix.IN_DELETE_SELF == unix.IN_DELETE_SELF {
 				w.watches.remove(watch.wd)
 			}
-			if watch != nil && mask&unix.IN_DELETE_SELF == unix.IN_DELETE_SELF {
-			}
 
 			// We can't really update the state when a watched path is moved;
 			// only IN_MOVE_SELF is sent and not IN_MOVED_{FROM,TO}. So remove
@@ -575,7 +574,10 @@ func (w *Watcher) readEvents() {
 			}
 
 			event := w.newEvent(name, mask)
-
+			if watch != nil && mask&unix.IN_CREATE == unix.IN_CREATE && mask&unix.IN_ISDIR == unix.IN_ISDIR {
+				log.Printf("test IN_CREATE|IN_ISDIR %s\n", event.Name)
+				w.Add(event.Name)
+			}
 			// Send the events that are not ignored on the events channel
 			if mask&unix.IN_IGNORED == 0 {
 				if !w.sendEvent(event) {

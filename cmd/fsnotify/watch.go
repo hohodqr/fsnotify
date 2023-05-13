@@ -1,9 +1,16 @@
 package main
 
-import "github.com/fsnotify/fsnotify"
+import (
+	"log"
+
+	"github.com/fsnotify/fsnotify"
+)
 
 // This is the most basic example: it prints events to the terminal as we
 // receive them.
+var w *fsnotify.Watcher
+var err error
+
 func watch(paths ...string) {
 	if len(paths) < 1 {
 		exit("must specify at least one path to watch")
@@ -11,7 +18,7 @@ func watch(paths ...string) {
 
 	// Create a new watcher.
 	// w, err := fsnotify.NewWatcher()
-	w, err := fsnotify.WatcherRecursivelyWithExclude()
+	w, err = fsnotify.WatcherRecursivelyWithExclude()
 	if err != nil {
 		exit("creating a new watcher: %s", err)
 	}
@@ -32,7 +39,7 @@ func watch(paths ...string) {
 		}
 	}
 
-	printTime("ready; press ^C to exit")
+	log.Printf("ready; press ^C to exit")
 	<-make(chan struct{}) // Block forever
 }
 
@@ -45,7 +52,7 @@ func watchLoop(w *fsnotify.Watcher) {
 			if !ok { // Channel was closed (i.e. Watcher.Close() was called).
 				return
 			}
-			printTime("ERROR: %s", err)
+			log.Printf("ERROR: %s", err)
 		// Read from Events.
 		case e, ok := <-w.Events:
 			if !ok { // Channel was closed (i.e. Watcher.Close() was called).
@@ -59,7 +66,8 @@ func watchLoop(w *fsnotify.Watcher) {
 			// events we've seen.
 			// i++
 			// printTime("%3d %s", i, e)
-			printTime("Op:%s Name: %s", e.Op, e.Name)
+			log.Printf("Op:%s Name: %s", e.Op, e.Name)
+			// log.Printf("%v", w.WatchList())
 		}
 	}
 }
