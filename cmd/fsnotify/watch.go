@@ -48,7 +48,7 @@ func watchLoop(w *fsnotify.Watcher) {
 	for {
 		select {
 		// Read from Errors.
-		case err, ok := <-w.Errors:
+		case err, ok := <-w.Errors:git@github.com:hohodqr/fsnotify.git
 			if !ok { // Channel was closed (i.e. Watcher.Close() was called).
 				return
 			}
