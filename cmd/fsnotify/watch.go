@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/fsnotify/fsnotify"
+	"github.com/hohodqr/fsnotify"
 )
 
 // This is the most basic example: it prints events to the terminal as we
@@ -48,7 +48,7 @@ func watchLoop(w *fsnotify.Watcher) {
 	for {
 		select {
 		// Read from Errors.
-		case err, ok := <-w.Errors:git@github.com:hohodqr/fsnotify.git
+		case err, ok := <-w.Errors:
 			if !ok { // Channel was closed (i.e. Watcher.Close() was called).
 				return
 			}
