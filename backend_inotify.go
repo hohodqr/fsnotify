@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -575,7 +574,6 @@ func (w *Watcher) readEvents() {
 
 			event := w.newEvent(name, mask)
 			if watch != nil && mask&unix.IN_CREATE == unix.IN_CREATE && mask&unix.IN_ISDIR == unix.IN_ISDIR {
-				log.Printf("test IN_CREATE|IN_ISDIR %s\n", event.Name)
 				w.Add(event.Name)
 			}
 			// Send the events that are not ignored on the events channel
