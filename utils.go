@@ -1,7 +1,6 @@
 package fsnotify
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -9,7 +8,7 @@ import (
 func visit(files *[]string) filepath.WalkFunc {
 	return func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		*files = append(*files, path)
 		return nil
