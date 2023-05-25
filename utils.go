@@ -10,7 +10,9 @@ func visit(files *[]string) filepath.WalkFunc {
 		if err != nil {
 			return err
 		}
-		*files = append(*files, path)
+		if info.IsDir() {
+			*files = append(*files, path)
+		}
 		return nil
 	}
 }
